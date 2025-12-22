@@ -31,7 +31,8 @@ def main():
             compressed_data = f.read()
             decompressed_data = zlib.decompress(compressed_data)
             decode_value = decompressed_data.decode('utf-8')
-            content = decode_value.split('\0', 1)[1:][0]
+            # The content is after the first null character, split and strip it to remove extra spaces
+            content = decode_value.split('\0', 1)[1:][0].strip()
             print(content)
     else:
         raise RuntimeError(f"Unknown command #{command}")
