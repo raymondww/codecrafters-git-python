@@ -1,6 +1,7 @@
 import sys
 import os
 import zlib
+import hashlib
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -34,6 +35,23 @@ def main():
             # The content is after the first null character, split and strip it to remove newline
             content = decode_value.split('\0', 1)[1]
             print(content, end='')
+    elif command == 'hash-object': 
+        text_file = sys. argv[3]
+        with open(text_file, "rb") as f:
+            content = f.read()
+        
+        # Create the blob header:  "blob <size>\0"
+        header = f"blob {len(content)}\0". encode('utf-8')
+        
+        # Combine header + content (this is what we hash)
+        store = header + content
+        
+        # Calculate SHA-1 hash on the UNCOMPRESSED data
+        sha1_hash = hashlib.sha1(store).hexdigest()
+        
+        # Print the hash
+        print(sha1_hash)
+
     else:
         raise RuntimeError(f"Unknown command #{command}")
     
