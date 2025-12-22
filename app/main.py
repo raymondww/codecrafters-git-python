@@ -23,7 +23,7 @@ def main():
         hash_value = sys. argv[3]
         folder = hash_value[:2]
         file_name = hash_value[2:]
-        path = os. path.join(".git", "objects", folder, file_name)
+        path = os.path.join(".git", "objects", folder, file_name)
         
         if not os.path.exists(path):
             print(f"Error: Object {hash_value} not found")
@@ -40,17 +40,31 @@ def main():
         with open(text_file, "rb") as f:
             content = f.read()
         
-        # Create the blob header:  "blob <size>\0"
         header = f"blob {len(content)}\0". encode('utf-8')
-        
-        # Combine header + content (this is what we hash)
         store = header + content
         
         # Calculate SHA-1 hash on the UNCOMPRESSED data
         sha1_hash = hashlib.sha1(store).hexdigest()
-        
-        # Print the hash
         print(sha1_hash)
+        # If -w flag is present, write to .git/objects
+        if '-w' in sys. argv:
+            # Split hash:  first 2 chars = folder, rest = filename
+            folder = sha1_hash[:2]
+            file_name = sha1_hash[2:]
+            
+            # Create directory path
+            dir_path = os.path.join(".git", "objects", folder)
+            file_path = os.path.join(dir_path, file_name)
+            
+            # Create directory if it doesn't exist
+            os.makedirs(dir_path, exist_ok=True)
+            
+            # Compress the data (header + content)
+            compressed_data = zlib.compress(store)
+            
+            # Write the compressed data to file
+            with open(file_path, 'wb') as f:
+                f.write(compressed_data)
 
     else:
         raise RuntimeError(f"Unknown command #{command}")
