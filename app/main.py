@@ -18,7 +18,7 @@ def main():
             f.write("ref: refs/heads/main\n")
         print("Initialized git directory")
     # cat-file command for reading a git object
-    if command == 'cat-file': 
+    elif command == 'cat-file': 
         hash_value = sys. argv[3]
         folder = hash_value[:2]
         file_name = hash_value[2:]
@@ -32,8 +32,8 @@ def main():
             decompressed_data = zlib.decompress(compressed_data)
             decode_value = decompressed_data.decode('utf-8')
             # The content is after the first null character, split and strip it to remove newline
-            content = decode_value.split('\0', 1)[1:][0].strip('\n')
-            print(content)
+            content = decode_value.split('\0', 1)[1]
+            print(content, end='')
     else:
         raise RuntimeError(f"Unknown command #{command}")
     
