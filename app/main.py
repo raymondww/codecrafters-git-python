@@ -138,10 +138,10 @@ def main():
             # Write to .git/objects
             folder = sha1_hash[:2]
             file_name = sha1_hash[2:]
-            dir_path = os.path.join(".git", "objects", folder)
+            dir_path = os. path.join(".git", "objects", folder)
             os.makedirs(dir_path, exist_ok=True)
             
-            file_path_git = os.path.join(dir_path, file_name)
+            file_path_git = os. path.join(dir_path, file_name)
             with open(file_path_git, 'wb') as f:
                 f.write(zlib.compress(blob_data))
             
@@ -153,13 +153,13 @@ def main():
             
             # Read all files and directories
             for item in os.listdir(directory):
-                # Ignore . git directory
-                if item == '. git':
-                    continue
-                
                 item_path = os.path.join(directory, item)
                 
-                if os.path. isfile(item_path):
+                # Ignore . git directory (check the full path from root)
+                if item == '. git' or item_path == '.git' or item_path. startswith('.git/'):
+                    continue
+                
+                if os. path.isfile(item_path):
                     # Create blob for file
                     sha1_hash = write_blob(item_path)
                     mode = '100644'
@@ -188,12 +188,12 @@ def main():
             # Write to .git/objects
             folder = sha1_hash[:2]
             file_name = sha1_hash[2:]
-            dir_path = os.path.join(".git", "objects", folder)
+            dir_path = os.path.join(". git", "objects", folder)
             os.makedirs(dir_path, exist_ok=True)
             
             file_path_git = os.path.join(dir_path, file_name)
             with open(file_path_git, 'wb') as f:
-                f.write(zlib. compress(tree_data))
+                f.write(zlib.compress(tree_data))
             
             return sha1_hash
         
