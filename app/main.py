@@ -2,6 +2,8 @@ import sys
 import os
 import zlib
 import hashlib
+import stat
+
 
 def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -35,36 +37,64 @@ def main():
             # The content is after the first null character, split and strip it to remove newline
             content = decode_value.split('\0', 1)[1]
             print(content, end='')
-    elif command == 'hash-object': 
-        text_file = sys. argv[3]
-        with open(text_file, "rb") as f:
-            content = f.read()
+    elif command == 'ls-tree': 
+        # Parse arguments
+        if len(sys.argv) == 4:
+            option = sys.argv[2]
+            sha1_hash = sys. argv[3]
+        else:  
+            option = None
+            sha1_hash = sys.argv[2]
         
-        header = f"blob {len(content)}\0". encode('utf-8')
-        store = header + content
+        folder = sha1_hash[:2]
+        file_name = sha1_hash[2:]
+        dir_path = os.path.join(".git", "objects", folder)
+        file_path = os.path.join(dir_path, file_name)
+
+        # Read and decompress
+        with open(file_path, "rb") as f:
+            compressed = f.read()
+            decompressed = zlib.decompress(compressed)
         
-        # Calculate SHA-1 hash on the UNCOMPRESSED data
-        sha1_hash = hashlib.sha1(store).hexdigest()
-        print(sha1_hash)
-        # If -w flag is present, write to .git/objects
-        if '-w' in sys. argv:
-            # Split hash:  first 2 chars = folder, rest = filename
-            folder = sha1_hash[:2]
-            file_name = sha1_hash[2:]
+        # Parse header:  "blob 11\0content" or "tree 234\0..."
+        null_index = decompressed.index(b'\x00')
+        header = decompressed[:null_index].decode('utf-8')
+        content = decompressed[null_index + 1:]
+        
+        entries = []
+        pos = 0
+
+        while pos < len(content):
+            # Find the null byte that separates filename from SHA-1
+            null_pos = content. index(b'\x00', pos)
             
-            # Create directory path
-            dir_path = os.path.join(".git", "objects", folder)
-            file_path = os.path.join(dir_path, file_name)
+            # Extract mode and filename
+            entry_start = content[pos:null_pos]
             
-            # Create directory if it doesn't exist
-            os.makedirs(dir_path, exist_ok=True)
+            # Extract the 20-byte SHA-1 hash after the null byte
+            sha1 = content[null_pos + 1:null_pos + 21]
             
-            # Compress the data (header + content)
-            compressed_data = zlib.compress(store)
+            # Combine and store
+            entries.append((entry_start, sha1))
             
-            # Write the compressed data to file
-            with open(file_path, 'wb') as f:
-                f.write(compressed_data)
+            # Move to next entry (after the 20-byte SHA-1)
+            pos = null_pos + 21
+
+        # Print the entries
+        for entry_start, sha1 in entries: 
+            header = entry_start. decode('utf-8')
+            mode, filename = header.split(' ')
+            
+            if option == '--name-only': 
+                print(filename)
+            else:
+                # Determine object type based on mode
+                if mode == '40000': 
+                    obj_type = 'tree'
+                else:
+                    obj_type = 'blob'
+                
+                print(f"{mode. zfill(6)} {obj_type} {sha1.hex()}\t{filename}")
 
     else:
         raise RuntimeError(f"Unknown command #{command}")
