@@ -2,7 +2,7 @@ import sys
 import os
 import zlib
 import hashlib
-import stat
+import time
 
 
 def main():
@@ -200,6 +200,45 @@ def main():
         # Write the tree and print the hash
         tree_hash = write_tree()
         print(tree_hash)
+    elif command == 'commit-tree':    
+        # Parse arguments
+        tree_sha = sys.argv[2]
+        parent_sha = sys.argv[4]  # After -p flag
+        message = sys.argv[6]  # After -m flag
+        
+        # Get current timestamp
+        timestamp = int(time.time())
+        timezone = '+0000'
+        
+        # Hardcoded author/committer info
+        author_name = 'John Doe'
+        author_email = 'john@example.com'
+        
+        # Build commit content
+        commit_content = f"tree {tree_sha}\n"
+        commit_content += f"parent {parent_sha}\n"
+        commit_content += f"author {author_name} <{author_email}> {timestamp} {timezone}\n"
+        commit_content += f"committer {author_name} <{author_email}> {timestamp} {timezone}\n"
+        commit_content += f"\n{message}\n"
+        
+        # Create commit object:  "commit <size>\0<content>"
+        commit_data = f"commit {len(commit_content)}".encode() + b'\x00' + commit_content. encode()
+        
+        # Calculate SHA-1 hash
+        sha1_hash = hashlib.sha1(commit_data).hexdigest()
+        
+        # Write to .git/objects
+        folder = sha1_hash[:2]
+        file_name = sha1_hash[2:]
+        dir_path = os.path.join(".git", "objects", folder)
+        os.makedirs(dir_path, exist_ok=True)
+        
+        file_path = os.path.join(dir_path, file_name)
+        with open(file_path, 'wb') as f:
+            f.write(zlib.compress(commit_data))
+        
+        # Print the commit SHA
+        print(sha1_hash)
 
     else:
         raise RuntimeError(f"Unknown command #{command}")
