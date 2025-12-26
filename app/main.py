@@ -37,6 +37,36 @@ def main():
             # The content is after the first null character, split and strip it to remove newline
             content = decode_value.split('\0', 1)[1]
             print(content, end='')
+    elif command == 'hash-object': 
+        text_file = sys. argv[3]
+        with open(text_file, "rb") as f:
+            content = f.read()
+        
+        header = f"blob {len(content)}\0". encode('utf-8')
+        store = header + content
+        
+        # Calculate SHA-1 hash on the UNCOMPRESSED data
+        sha1_hash = hashlib.sha1(store).hexdigest()
+        print(sha1_hash)
+        # If -w flag is present, write to .git/objects
+        if '-w' in sys. argv:
+            # Split hash:  first 2 chars = folder, rest = filename
+            folder = sha1_hash[:2]
+            file_name = sha1_hash[2:]
+            
+            # Create directory path
+            dir_path = os.path.join(".git", "objects", folder)
+            file_path = os.path.join(dir_path, file_name)
+            
+            # Create directory if it doesn't exist
+            os.makedirs(dir_path, exist_ok=True)
+            
+            # Compress the data (header + content)
+            compressed_data = zlib.compress(store)
+            
+            # Write the compressed data to file
+            with open(file_path, 'wb') as f:
+                f.write(compressed_data)
     elif command == 'ls-tree': 
         # Parse arguments
         if len(sys.argv) == 4:
@@ -95,6 +125,7 @@ def main():
                     obj_type = 'blob'
                 
                 print(f"{mode. zfill(6)} {obj_type} {sha1.hex()}\t{filename}")
+
 
     else:
         raise RuntimeError(f"Unknown command #{command}")
