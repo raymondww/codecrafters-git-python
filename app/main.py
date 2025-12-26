@@ -9,8 +9,6 @@ def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!", file=sys.stderr)
 
-    # TODO: Uncomment the code below to pass the first stage
-    
     command = sys.argv[1]
     # init command for initializing a git repository
     if command == "init":
@@ -125,12 +123,86 @@ def main():
                     obj_type = 'blob'
                 
                 print(f"{mode. zfill(6)} {obj_type} {sha1.hex()}\t{filename}")
-
+    elif command == 'write-tree':
+        def write_blob(file_path):
+            """Write a blob object and return its SHA-1 hash"""
+            with open(file_path, 'rb') as f:
+                content = f.read()
+            
+            # Create blob object:  "blob <size>\0<content>"
+            blob_data = f"blob {len(content)}". encode() + b'\x00' + content
+            
+            # Calculate SHA-1 hash
+            sha1_hash = hashlib.sha1(blob_data).hexdigest()
+            
+            # Write to .git/objects
+            folder = sha1_hash[:2]
+            file_name = sha1_hash[2:]
+            dir_path = os.path.join(".git", "objects", folder)
+            os.makedirs(dir_path, exist_ok=True)
+            
+            file_path_git = os.path.join(dir_path, file_name)
+            with open(file_path_git, 'wb') as f:
+                f.write(zlib.compress(blob_data))
+            
+            return sha1_hash
+        
+        def write_tree(directory='.'):
+            """Write a tree object and return its SHA-1 hash"""
+            entries = []
+            
+            # Read all files and directories
+            for item in os.listdir(directory):
+                # Ignore . git directory
+                if item == '. git':
+                    continue
+                
+                item_path = os.path.join(directory, item)
+                
+                if os.path. isfile(item_path):
+                    # Create blob for file
+                    sha1_hash = write_blob(item_path)
+                    mode = '100644'
+                    entries.append((mode, item, sha1_hash))
+                elif os.path.isdir(item_path):
+                    # Recursively create tree for directory
+                    sha1_hash = write_tree(item_path)
+                    mode = '40000'
+                    entries.append((mode, item, sha1_hash))
+            
+            # Sort entries alphabetically by name
+            entries. sort(key=lambda x: x[1])
+            
+            # Build tree content
+            tree_content = b''
+            for mode, name, sha1_hash in entries:
+                tree_content += mode.encode() + b' ' + name.encode() + b'\x00'
+                tree_content += bytes. fromhex(sha1_hash)
+            
+            # Create tree object:  "tree <size>\0<content>"
+            tree_data = f"tree {len(tree_content)}".encode() + b'\x00' + tree_content
+            
+            # Calculate SHA-1 hash
+            sha1_hash = hashlib.sha1(tree_data).hexdigest()
+            
+            # Write to .git/objects
+            folder = sha1_hash[:2]
+            file_name = sha1_hash[2:]
+            dir_path = os.path.join(".git", "objects", folder)
+            os.makedirs(dir_path, exist_ok=True)
+            
+            file_path_git = os.path.join(dir_path, file_name)
+            with open(file_path_git, 'wb') as f:
+                f.write(zlib. compress(tree_data))
+            
+            return sha1_hash
+        
+        # Write the tree and print the hash
+        tree_hash = write_tree()
+        print(tree_hash)
 
     else:
         raise RuntimeError(f"Unknown command #{command}")
-    
-
 
 if __name__ == "__main__":
     main()
